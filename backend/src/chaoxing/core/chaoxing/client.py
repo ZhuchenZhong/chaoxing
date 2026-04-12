@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
 import httpx
 
-from .constants import COURSE_LIST_URL
+from .constants import AUDIO_HEADERS, COURSE_LIST_URL, VIDEO_HEADERS
 from .crypto import AESCipher
 from .exceptions import (
     ChaoxingAuthError,
@@ -41,8 +42,9 @@ IMAGE_VIEW_URL = "https://mooc1-api.chaoxing.com/ananas/job/insertimage"
 BOOK_VIEW_URL = "https://mooc1-api.chaoxing.com/ananas/job/insertbook"
 AUDIO_VIEW_URL = "https://mooc1-api.chaoxing.com/ananas/job/insertaudio"
 VIDEO_VIEW_URL = "https://mooc1-api.chaoxing.com/ananas/job/insertvideo"
-READING_COMPLETE_URL = "https://mooc1.chaoxing.com/mooc-ans/work/addStudentWork"
-DOCUMENT_COMPLETE_URL = "https://mooc1.chaoxing.com/ananas/job/document"
+READING_URL = "https://mooc1.chaoxing.com/ananas/job/readv2"
+DOCUMENT_URL = "https://mooc1.chaoxing.com/ananas/job/document"
+EMPTYPAGE_URL = "https://mooc1.chaoxing.com/mooc-ans/mycourse/studentstudyAjax"
 KNOWLEDGE_CARDS_URL = "https://mooc1.chaoxing.com/mooc-ans/knowledge/cards"
 VIDEO_PROGRESS_URL = "https://mooc1.chaoxing.com/mooc-ans/mycourse/studentcourse"
 VIDEO_LOG_URL = "https://mooc1.chaoxing.com/mooc-ans/multimedia/log"
@@ -390,6 +392,9 @@ class ChaoxingClient:
         except ValueError:
             return {"isPassed": "success" in response.text.lower()}
 
+    async def get_userid(self) -> str:
+        return await self._get_cookie_value("_uid", "UID")
+
     async def log_video_progress(
         self,
         *,
@@ -408,10 +413,12 @@ class ChaoxingClient:
         video_face_capture_enc: str | None = None,
         att_duration: str | None = None,
         att_duration_enc: str | None = None,
-    ) -> bool:
+    ) -> tuple[bool, int]:
+        """Report video/audio progress. Returns (isPassed, status_code)."""
         await self.video_log_limiter.limit_rate(random_time=True, random_max=2.0)
         client = await self.session_manager.get_client(self.account_id)
         userid = await self._get_cookie_value("_uid", "UID")
+        headers = VIDEO_HEADERS if dtype == "Video" else AUDIO_HEADERS
         params: dict[str, Any] = {
             "clazzId": clazz_id,
             "playingTime": playing_time,
@@ -429,6 +436,7 @@ class ChaoxingClient:
         }
         if rt:
             params["rt"] = rt
+            params["_t"] = str(int(time.time() * 1000))
         if video_face_capture_enc:
             params["videoFaceCaptureEnc"] = video_face_capture_enc
         if att_duration:
@@ -436,39 +444,40 @@ class ChaoxingClient:
         if att_duration_enc:
             params["attDurationEnc"] = att_duration_enc
 
-        response = await client.get(f"{VIDEO_LOG_URL}/a/{cpi}/{dtoken}", params=params)
-        self._ensure_success_response(
-            response,
-            error_message="Chaoxing video log request failed",
-            url=VIDEO_LOG_URL,
+        response = await client.get(
+            f"{VIDEO_LOG_URL}/a/{cpi}/{dtoken}", params=params, headers=headers
         )
-        self._ensure_not_expired_session(response.text)
+        status_code = response.status_code
+        if status_code == 403:
+            return False, 403
+        if status_code < 200 or status_code >= 300:
+            return False, status_code
         try:
             data = response.json()
         except ValueError:
-            return "success" in response.text.lower()
-        return bool(data.get("isPassed"))
+            return "success" in response.text.lower(), status_code
+        return bool(data.get("isPassed")), status_code
 
-    async def refresh_video_status(self, objectid: str) -> dict[str, Any] | None:
+    async def refresh_video_status(
+        self, objectid: str, dtype: str = "Video"
+    ) -> dict[str, Any] | None:
         client = await self.session_manager.get_client(self.account_id)
         fid = await self._get_cookie_value("fid")
-        response = await client.get(
-            f"{VIDEO_STATUS_URL}/{objectid}",
-            params={"k": fid, "flag": "normal"},
-        )
-        self._ensure_success_response(
-            response,
-            error_message="Chaoxing video status request failed",
-            url=VIDEO_STATUS_URL,
-        )
-        self._ensure_not_expired_session(response.text)
+        headers = VIDEO_HEADERS if dtype == "Video" else AUDIO_HEADERS
+        try:
+            response = await client.get(
+                f"{VIDEO_STATUS_URL}/{objectid}",
+                params={"k": fid, "flag": "normal"},
+                headers=headers,
+            )
+        except httpx.HTTPError:
+            return None
+        if response.status_code < 200 or response.status_code >= 300:
+            return None
         try:
             data = response.json()
-        except ValueError as exc:
-            raise ChaoxingParseError(
-                "Chaoxing video status response was not valid JSON",
-                detail={"url": VIDEO_STATUS_URL},
-            ) from exc
+        except ValueError:
+            return None
         return data if data.get("status") == "success" else None
 
     async def get_quiz_questions(
@@ -530,22 +539,27 @@ class ChaoxingClient:
 
     async def mark_document_complete(
         self,
+        *,
         jobid: str,
-        dtoken: str,
-        course_id: str | None = None,
+        knowledgeid: str,
+        course_id: str,
+        clazz_id: str,
+        jtoken: str,
     ) -> bool:
+        """Mark a document as read. Legacy uses GET to /ananas/job/document."""
         client = await self.session_manager.get_client(self.account_id)
-        response = await client.post(
-            DOCUMENT_COMPLETE_URL,
-            data={"jobid": jobid, "dtoken": dtoken, "courseid": course_id or ""},
+        response = await client.get(
+            DOCUMENT_URL,
+            params={
+                "jobid": jobid,
+                "knowledgeid": knowledgeid,
+                "courseid": course_id,
+                "clazzid": clazz_id,
+                "jtoken": jtoken,
+                "_dc": str(int(time.time() * 1000)),
+            },
         )
-        self._ensure_success_response(
-            response,
-            error_message="Chaoxing document completion request failed",
-            url=DOCUMENT_COMPLETE_URL,
-        )
-        self._ensure_not_expired_session(response.text)
-        return self._response_indicates_success(response)
+        return response.status_code == 200
 
     async def mark_page_viewed(
         self,
@@ -572,44 +586,57 @@ class ChaoxingClient:
 
     async def mark_reading_complete(
         self,
+        *,
         jobid: str,
-        knowledgeid: str | None = None,
-        course_id: str | None = None,
+        knowledgeid: str,
+        jtoken: str,
+        course_id: str,
+        clazz_id: str,
     ) -> bool:
+        """Mark a reading task as complete. Legacy uses GET to /ananas/job/readv2."""
         client = await self.session_manager.get_client(self.account_id)
-        response = await client.post(
-            READING_COMPLETE_URL,
-            data={
+        response = await client.get(
+            READING_URL,
+            params={
                 "jobid": jobid,
-                "knowledgeid": knowledgeid or "",
-                "courseid": course_id or "",
+                "knowledgeid": knowledgeid,
+                "jtoken": jtoken,
+                "courseid": course_id,
+                "clazzid": clazz_id,
             },
         )
-        self._ensure_success_response(
-            response,
-            error_message="Chaoxing reading completion request failed",
-            url=READING_COMPLETE_URL,
-        )
-        self._ensure_not_expired_session(response.text)
-        return self._response_indicates_success(response)
+        if response.status_code != 200:
+            return False
+        try:
+            data = response.json()
+            return bool(data.get("status"))
+        except ValueError:
+            return "success" in response.text.lower()
 
     async def mark_emptypage_complete(
         self,
-        jobid: str,
-        course_id: str | None = None,
+        *,
+        course_id: str,
+        clazz_id: str,
+        chapter_id: str,
+        cpi: str,
     ) -> bool:
+        """Mark an empty-page chapter as viewed. Legacy uses GET to studentstudyAjax."""
         client = await self.session_manager.get_client(self.account_id)
-        response = await client.post(
-            READING_COMPLETE_URL,
-            data={"jobid": jobid, "courseid": course_id or ""},
+        response = await client.get(
+            EMPTYPAGE_URL,
+            params={
+                "courseId": course_id,
+                "clazzid": clazz_id,
+                "chapterId": chapter_id,
+                "cpi": cpi,
+                "verificationcode": "",
+                "mooc2": 1,
+                "microTopicId": 0,
+                "editorPreview": 0,
+            },
         )
-        self._ensure_success_response(
-            response,
-            error_message="Chaoxing emptypage completion request failed",
-            url=READING_COMPLETE_URL,
-        )
-        self._ensure_not_expired_session(response.text)
-        return self._response_indicates_success(response)
+        return response.status_code == 200
 
     async def mark_book_viewed(
         self,
