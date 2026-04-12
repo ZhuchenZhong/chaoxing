@@ -1,0 +1,10 @@
+{
+  "name": "Chaoxing Web",
+  "appid": "__UNI__CHAOXING_WEB",
+  "description": "Web-first Chaoxing platform entrypoint",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "h5": {
+    "title": "Chaoxing Web"
+  }
+}

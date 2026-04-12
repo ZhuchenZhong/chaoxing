@@ -1,0 +1,33 @@
+{
+  "total_users": 6,
+  "total_invites": 2,
+  "total_accounts": 3,
+  "total_study_profiles": 6,
+  "total_wallets": 6,
+  "total_wallet_transactions": 1349,
+  "accounts_requiring_rebind": 3,
+  "reusable_accounts": 0,
+  "accounts": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "display_name": "main",
+      "auth_type": "password",
+      "requires_rebind": true
+    },
+    {
+      "id": 2,
+      "user_id": 3,
+      "display_name": "xwj",
+      "auth_type": "password",
+      "requires_rebind": true
+    },
+    {
+      "id": 3,
+      "user_id": 4,
+      "display_name": "晴岚",
+      "auth_type": "password",
+      "requires_rebind": true
+    }
+  ]
+}

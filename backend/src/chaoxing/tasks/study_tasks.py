@@ -20,8 +20,11 @@ from ..core.chaoxing.constants import StudyResult
 from ..core.chaoxing.crypto import AESCipher
 from ..core.chaoxing.rate_limiter import AsyncRateLimiter
 from ..core.notification import NotificationService
+from ..core.services.auth_service import AuthService
+from ..core.services.course_service import CourseService
 from ..core.services.session_service import SessionService
 from ..core.services.task_orchestrator import TaskOrchestrator
+from ..core.tiku import TikuService
 from ..db.database import AsyncSessionLocal
 from ..models.chaoxing_account import ChaoxingAccount
 from ..models.enums import ChaoxingAuthType
@@ -163,9 +166,6 @@ async def process_study_run_job(
 ) -> dict[str, Any]:
     """Execute a full study run: login → courses → chapters → jobs."""
     session_service = SessionService()
-    orchestrator = (
-        orchestrator_factory() if orchestrator_factory is not None else TaskOrchestrator(session_service)
-    )
 
     processed_jobs = 0
     successful_jobs = 0
@@ -191,6 +191,21 @@ async def process_study_run_job(
 
             speed = float(profile.speed) if profile else 1.0
             job_delay = 0.5  # default delay between jobs (seconds)
+
+            # ── Build TikuService with DB cache ─────────────────────────
+            tiku_cfg = profile.tiku_config if profile else {}
+            tiku_service = TikuService(
+                db_session=session,
+                cover_rate=float(tiku_cfg.get("cover_rate", 0.8)),
+                auto_submit=bool(tiku_cfg.get("auto_submit", False)),
+            )
+            await tiku_service.load_providers_from_db(run.user_id)
+
+            orchestrator = (
+                orchestrator_factory()
+                if orchestrator_factory is not None
+                else TaskOrchestrator(session_service, tiku_service=tiku_service)
+            )
 
             # Mark run as RUNNING
             run.status = StudyRunStatus.RUNNING
@@ -495,6 +510,49 @@ def process_study_run(self, run_id: int) -> dict[str, Any]:
         raise self.retry(exc=exc, countdown=30) from exc
 
 
-@celery_app.task(name="chaoxing.tasks.sync_courses")
-def sync_courses(account_id: int) -> dict[str, Any]:
-    return {"account_id": account_id, "status": "queued"}
+@celery_app.task(name="chaoxing.tasks.sync_courses", bind=True, max_retries=2)
+def sync_courses(self, account_id: int) -> dict[str, Any]:
+    """Sync courses for a Chaoxing account in the background."""
+    try:
+        return run_async(_sync_courses_async(account_id))
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=30) from exc
+
+
+async def _sync_courses_async(account_id: int) -> dict[str, Any]:
+    """Async implementation of course sync."""
+    async with AsyncSessionLocal() as session:
+        account = await session.get(ChaoxingAccount, account_id)
+        if account is None:
+            return {"account_id": account_id, "status": "error", "message": "Account not found"}
+
+        session_service = SessionService()
+        auth_service = AuthService(session_service)
+        course_service = CourseService(session_service)
+
+        login_payload, login_with_cookies = _build_login_payload(account)
+
+        try:
+            login_result = await auth_service.login(
+                str(account_id), login_payload, login_with_cookies
+            )
+            if login_result.get("status") != "success":
+                return {
+                    "account_id": account_id,
+                    "status": "error",
+                    "message": login_result.get("message", "Login failed"),
+                }
+
+            courses = await course_service.get_course_list(str(account_id))
+
+            account.is_login_valid = True
+            account.last_synced_at = datetime.now(timezone.utc)
+            await session.commit()
+
+            return {
+                "account_id": account_id,
+                "status": "success",
+                "course_count": len(courses),
+            }
+        finally:
+            await session_service.close_all()

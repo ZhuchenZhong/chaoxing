@@ -1,0 +1,19 @@
+{
+  "name": "chaoxing-web-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:h5": "uni",
+    "build:h5": "uni build -p h5"
+  },
+  "dependencies": {
+    "pinia": "2.1.7",
+    "vue": "3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "3.4.28",
+    "@dcloudio/uni-app": "3.0.0-5000520260324002",
+    "@dcloudio/vite-plugin-uni": "3.0.0-5000520260324002",
+    "vite": "5.2.8"
+  }
+}
