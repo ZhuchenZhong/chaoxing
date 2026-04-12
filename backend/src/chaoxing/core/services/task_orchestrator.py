@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..chaoxing.constants import StudyResult
+from ..tiku import TikuService
 from .auth_service import AuthService
 from .book_service import BookService
 from .course_service import CourseService
@@ -17,7 +18,7 @@ from .video_service import VideoService
 
 
 class TaskOrchestrator:
-    def __init__(self, session_service, tiku_service: Any | None = None):
+    def __init__(self, session_service, tiku_service: TikuService | None = None):
         self.session_service = session_service
         self.auth_service = AuthService(session_service)
         self.course_service = CourseService(session_service)
