@@ -32,6 +32,12 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   const runningRuns = computed(() =>
     runs.value.filter((run) => ["queued", "running", "stopping"].includes(run.status)),
   );
+  const completedRuns = computed(() =>
+    runs.value.filter((run) => run.status === "completed"),
+  );
+  const failedRuns = computed(() =>
+    runs.value.filter((run) => run.status === "failed"),
+  );
 
   async function loadDashboard() {
     await Promise.all([loadAccounts(), loadRuns(), loadWallet()]);
@@ -161,6 +167,8 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     lastLoadedAt,
     invalidAccounts,
     runningRuns,
+    completedRuns,
+    failedRuns,
     loadDashboard,
     loadAccounts,
     loadRuns,

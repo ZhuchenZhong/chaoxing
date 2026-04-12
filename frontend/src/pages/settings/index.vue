@@ -14,6 +14,8 @@
     <view v-if="errorMessage" class="cx-alert page-alert">{{ errorMessage }}</view>
     <view v-if="successMessage" class="cx-success page-alert">{{ successMessage }}</view>
 
+    <LoadingSpinner v-if="loading && !initialized" text="加载设置..." />
+
     <view class="cx-grid metrics-grid">
       <view class="cx-panel metric-card">
         <text class="cx-metric-label">当前积分</text>
@@ -112,23 +114,90 @@
         <view class="cx-panel">
           <text class="cx-section-label">通知配置</text>
           <text class="cx-panel-title">学习任务完成后的推送通道</text>
-          <view class="cx-form">
-            <view>
-              <text class="cx-field-label">通知提供者 JSON</text>
-              <text class="cx-field-hint">
-                每条记录包含 provider（bark / pushplus / server_chan / dingtalk / custom_webhook）、enabled、name、settings_json 字段。
-              </text>
-              <textarea v-model="notificationConfigJson" class="cx-textarea" />
-            </view>
-            <view class="action-row">
-              <button class="cx-primary-btn" :disabled="busyAction" @click="saveNotificationConfig">
-                保存通知配置
-              </button>
-              <button class="cx-ghost-btn" :disabled="busyAction" @click="testNotification">
-                发送测试
-              </button>
+          <text class="cx-panel-subtitle">
+            配置后，任务完成、失败时会自动推送通知到对应渠道。
+          </text>
+
+          <view class="notification-providers">
+            <view v-for="(provider, idx) in notifyProviders" :key="provider.key" class="notify-provider-card">
+              <view class="notify-provider-header">
+                <view class="notify-provider-title-row">
+                  <text class="cx-item-title">{{ provider.label }}</text>
+                  <text :class="['status-pill', provider.form.enabled ? 'status-pill--ok' : 'status-pill--muted']">
+                    {{ provider.form.enabled ? "已启用" : "未启用" }}
+                  </text>
+                </view>
+                <text class="cx-item-meta">{{ provider.hint }}</text>
+              </view>
+
+              <view class="cx-form">
+                <view class="notify-toggle-row">
+                  <text class="cx-field-label">启用</text>
+                  <button
+                    :class="['cx-nav-btn', provider.form.enabled ? 'cx-nav-btn--active' : '']"
+                    @click="provider.form.enabled = !provider.form.enabled"
+                  >
+                    {{ provider.form.enabled ? "开" : "关" }}
+                  </button>
+                </view>
+
+                <view>
+                  <text class="cx-field-label">名称</text>
+                  <input v-model="provider.form.name" class="cx-input" :placeholder="`${provider.label} 通道`" />
+                </view>
+
+                <template v-if="provider.key === 'server_chan'">
+                  <view>
+                    <text class="cx-field-label">SendKey</text>
+                    <input v-model="provider.form.settings.send_key" class="cx-input" placeholder="SCT..." />
+                  </view>
+                </template>
+
+                <template v-else-if="provider.key === 'qmsg'">
+                  <view>
+                    <text class="cx-field-label">Key</text>
+                    <input v-model="provider.form.settings.key" class="cx-input" placeholder="Qmsg 的 Key" />
+                  </view>
+                  <view>
+                    <text class="cx-field-label">QQ 号</text>
+                    <input v-model="provider.form.settings.qq" class="cx-input" placeholder="接收消息的 QQ 号" />
+                  </view>
+                </template>
+
+                <template v-else-if="provider.key === 'bark'">
+                  <view>
+                    <text class="cx-field-label">Bark 服务器 URL</text>
+                    <input v-model="provider.form.settings.server_url" class="cx-input" placeholder="https://api.day.app" />
+                  </view>
+                  <view>
+                    <text class="cx-field-label">Device Key</text>
+                    <input v-model="provider.form.settings.device_key" class="cx-input" placeholder="你的 Bark Key" />
+                  </view>
+                </template>
+
+                <template v-else-if="provider.key === 'telegram'">
+                  <view>
+                    <text class="cx-field-label">Bot Token</text>
+                    <input v-model="provider.form.settings.bot_token" class="cx-input" placeholder="123456:ABC-DEF..." />
+                  </view>
+                  <view>
+                    <text class="cx-field-label">Chat ID</text>
+                    <input v-model="provider.form.settings.chat_id" class="cx-input" placeholder="数字格式的 Chat ID" />
+                  </view>
+                </template>
+              </view>
             </view>
           </view>
+
+          <view class="action-row" style="margin-top: 18rpx;">
+            <button class="cx-primary-btn" :disabled="busyAction" @click="saveNotificationConfig">
+              保存通知配置
+            </button>
+            <button class="cx-ghost-btn" :disabled="busyAction || testingNotify" @click="testNotification">
+              {{ testingNotify ? "发送中..." : "发送测试通知" }}
+            </button>
+          </view>
+          <view v-if="testResult" class="cx-success" style="margin-top: 12rpx;">{{ testResult }}</view>
         </view>
       </view>
 
@@ -218,6 +287,7 @@ import { computed, reactive, ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 
 import AppShell from "../../components/AppShell.vue";
+import LoadingSpinner from "../../components/LoadingSpinner.vue";
 import { createRecharge } from "../../api/wallet";
 import { getProfile, updateProfile } from "../../api/users";
 import { useSessionStore } from "../../store/session";
@@ -230,6 +300,7 @@ const session = useSessionStore();
 const workspace = useWorkspaceStore();
 
 const loading = ref(false);
+const initialized = ref(false);
 const busyAction = ref(false);
 const errorMessage = ref("");
 const successMessage = ref("");
@@ -261,8 +332,27 @@ const rechargeForm = reactive({
 });
 
 const tikuConfigJson = ref("{}");
-const notificationConfigJson = ref("[]");
+const testingNotify = ref(false);
+const testResult = ref("");
 const recentTransaction = computed(() => workspace.walletTransactions[0] || null);
+
+const NOTIFY_PROVIDERS = [
+  { key: "server_chan", label: "Server酱", hint: "通过 Server酱 推送微信通知", defaultSettings: { send_key: "" } },
+  { key: "qmsg", label: "Qmsg酱", hint: "通过 Qmsg 推送 QQ 消息", defaultSettings: { key: "", qq: "" } },
+  { key: "bark", label: "Bark", hint: "iOS / macOS Bark 推送", defaultSettings: { server_url: "https://api.day.app", device_key: "" } },
+  { key: "telegram", label: "Telegram", hint: "通过 Telegram Bot 推送消息", defaultSettings: { bot_token: "", chat_id: "" } },
+];
+
+const notifyProviders = reactive(
+  NOTIFY_PROVIDERS.map((p) => ({
+    ...p,
+    form: reactive({
+      enabled: false,
+      name: "",
+      settings: reactive({ ...p.defaultSettings }),
+    }),
+  })),
+);
 
 onShow(async () => {
   await loadPage();
@@ -289,11 +379,12 @@ async function loadPage() {
     studyForm.notopen_action = workspace.studyConfig?.notopen_action || "retry";
     studyForm.submit_config_json = stringifyJson(workspace.studyConfig?.submit_config || {});
     tikuConfigJson.value = stringifyJson(workspace.tikuConfig?.tiku_config || {});
-    notificationConfigJson.value = stringifyJson(workspace.notificationConfig?.providers || []);
+    populateNotifyProviders(workspace.notificationConfig);
   } catch (error) {
     errorMessage.value = extractErrorMessage(error);
   } finally {
     loading.value = false;
+    initialized.value = true;
   }
 }
 
@@ -331,24 +422,56 @@ async function saveTikuConfig() {
 
 async function saveNotificationConfig() {
   await runAction(async () => {
-    const providers = parseJsonInput(notificationConfigJson.value, []);
+    const providers = notifyProviders.map((p) => ({
+      provider: p.key,
+      enabled: p.form.enabled,
+      name: p.form.name || p.label,
+      settings: { ...p.form.settings },
+    }));
     await workspace.saveNotificationConfig({ providers });
-    notificationConfigJson.value = stringifyJson(workspace.notificationConfig?.providers || []);
+    populateNotifyProviders(workspace.notificationConfig);
     successMessage.value = "通知配置已保存。";
   });
 }
 
 async function testNotification() {
+  testingNotify.value = true;
+  testResult.value = "";
   await runAction(async () => {
     const result = await workspace.sendTestNotification();
-    const entries = Object.entries(result.results || {});
+    const entries = Object.entries(result.results || result || {});
     if (!entries.length) {
-      successMessage.value = "没有已启用的通知通道。";
+      testResult.value = "没有已启用的通知通道。";
       return;
     }
     const summary = entries.map(([k, v]) => `${k}: ${v ? "✓" : "✗"}`).join("，");
-    successMessage.value = `测试结果 — ${summary}`;
+    testResult.value = `测试结果 — ${summary}`;
   });
+  testingNotify.value = false;
+}
+
+function populateNotifyProviders(config) {
+  const existingProviders = config?.providers || [];
+  for (const np of notifyProviders) {
+    const existing = existingProviders.find(
+      (ep) => ep.provider === np.key || ep.name === np.label,
+    );
+    if (existing) {
+      np.form.enabled = existing.enabled ?? false;
+      np.form.name = existing.name || "";
+      const settings = existing.settings || {};
+      for (const k of Object.keys(np.form.settings)) {
+        np.form.settings[k] = settings[k] || np.form.settings[k] || "";
+      }
+    } else {
+      np.form.enabled = false;
+      np.form.name = "";
+      const defaults = NOTIFY_PROVIDERS.find((p) => p.key === np.key)?.defaultSettings || {};
+      for (const k of Object.keys(np.form.settings)) {
+        np.form.settings[k] = defaults[k] || "";
+      }
+    }
+  }
 }
 
 async function savePassword() {
@@ -463,5 +586,46 @@ async function runAction(action) {
   .metrics-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.notification-providers {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+.notify-provider-card {
+  background: var(--cx-bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16rpx;
+  padding: 24rpx;
+}
+
+.notify-provider-header {
+  margin-bottom: 16rpx;
+}
+
+.notify-provider-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 6rpx;
+}
+
+.notify-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-pill--muted {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cx-muted);
+}
+
+.cx-nav-btn--active {
+  background: var(--cx-olive);
+  color: #fff;
 }
 </style>
