@@ -144,12 +144,19 @@ async def test_video_service_process_returns_success_when_already_complete() -> 
     with patch("chaoxing.core.services.video_service.ChaoxingClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
-        mock_client.get_video_progress.return_value = {"isPassed": True}
+        mock_client.refresh_video_status.return_value = {
+            "status": "success",
+            "dtoken": "dt-1",
+            "duration": 300,
+        }
+        mock_client.get_userid.return_value = "42"
+        # First log_video_progress call returns passed=True
+        mock_client.log_video_progress.return_value = (True, 200)
 
         result = await service.process(
             {"course_id": "123", "account_id": "acc1"},
-            {"type": "video", "jobid": "456"},
-            {"dtoken": "token-1", "duration": 300, "objectid": "obj-1"},
+            {"type": "video", "jobid": "456", "objectid": "obj-1"},
+            {"dtoken": "token-1"},
             speed=2.0,
         )
 
@@ -165,15 +172,22 @@ async def test_video_service_process_logs_progress_until_completion() -> None:
     with patch("chaoxing.core.services.video_service.ChaoxingClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
-        mock_client.get_video_progress.side_effect = [
-            {"isPassed": False},
-            {"isPassed": True},
+        mock_client.refresh_video_status.return_value = {
+            "status": "success",
+            "dtoken": "dt-1",
+            "duration": 120,
+        }
+        mock_client.get_userid.return_value = "42"
+        # First call: not passed, second call: passed
+        mock_client.log_video_progress.side_effect = [
+            (False, 200),
+            (True, 200),
         ]
 
         result = await service.process(
             {"course_id": "123", "account_id": "acc1"},
-            {"type": "video", "jobid": "456"},
-            {"dtoken": "token-1", "duration": 120, "objectid": "obj-1"},
+            {"type": "video", "jobid": "456", "objectid": "obj-1"},
+            {"dtoken": "token-1"},
             speed=2.0,
         )
 
@@ -184,13 +198,20 @@ async def test_video_service_process_logs_progress_until_completion() -> None:
 @pytest.mark.asyncio
 async def test_video_service_returns_failed_when_required_video_fields_are_missing() -> None:
     session_service = Mock()
+    session_service.session_manager = Mock()
     service = VideoService(session_service)
 
-    result = await service.process(
-        {"course_id": "123", "account_id": "acc1"},
-        {"type": "video", "jobid": "456"},
-        {"duration": 120},
-    )
+    with patch("chaoxing.core.services.video_service.ChaoxingClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.return_value = mock_client
+        # refresh_video_status returns None when objectid is missing/empty
+        mock_client.refresh_video_status.return_value = None
+
+        result = await service.process(
+            {"course_id": "123", "account_id": "acc1"},
+            {"type": "video", "jobid": "456"},
+            {"duration": 120},
+        )
 
     assert result == StudyResult.FAILED
 
