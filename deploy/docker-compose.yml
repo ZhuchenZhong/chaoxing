@@ -1,0 +1,103 @@
+x-backend-env: &backend-env
+  APP_NAME: ${APP_NAME}
+  APP_VERSION: ${APP_VERSION}
+  DEBUG: ${DEBUG}
+  HOST: ${HOST}
+  PORT: ${PORT}
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_ALGORITHM: ${JWT_ALGORITHM}
+  JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+  JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS}
+  DATABASE_URL: ${DATABASE_URL}
+  REDIS_URL: ${REDIS_URL}
+  CORS_ORIGINS: ${CORS_ORIGINS}
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - chaoxing
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - chaoxing
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+    command: ["uvicorn", "chaoxing.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "127.0.0.1:${API_BIND_PORT}:8000"
+    volumes:
+      - ../data/migration:/app/data/migration
+    networks:
+      - chaoxing
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+    command: ["celery", "-A", "chaoxing.worker", "worker", "--loglevel=info", "-Q", "default,study"]
+    volumes:
+      - ../data/migration:/app/data/migration
+    networks:
+      - chaoxing
+    depends_on:
+      api:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_BIND_PORT}:80"
+    networks:
+      - chaoxing
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  chaoxing:
+    driver: bridge
