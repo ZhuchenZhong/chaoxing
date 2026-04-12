@@ -154,3 +154,22 @@ config*.ini
 .idea/
 .vscode/
 cache.json
+
+# Web platform rewrite
+backend/.venv/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/.mypy_cache/
+backend/alembic-dev.db
+frontend/node_modules/
+frontend/dist/
+frontend/unpackage/
+deploy/.env
+
+# Local-only (MCP / TaskFlow)
+.mcp.json
+.plan/
+
+# Local dev databases
+*.db
+*.db-journal
