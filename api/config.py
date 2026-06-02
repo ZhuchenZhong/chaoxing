@@ -1,7 +1,20 @@
 # -*- coding: utf-8 -*-
+import os
+from pathlib import Path
+
+
+def get_app_home() -> Path:
+    override = os.environ.get("CHAOXING_HOME")
+    if override:
+        return Path(override).expanduser().resolve()
+    return (Path.home() / ".chaoxing").resolve()
+
+
 class GlobalConst:
     AESKey = "u2oh6Vu^HWe4_AES"
-    COOKIES_PATH = "cookies.txt"
+    APP_HOME = str(get_app_home())
+    COOKIES_PATH = str(get_app_home() / "cookies" / "default.txt")
+    LOG_PATH = str(get_app_home() / "logs" / "chaoxing.log")
 
     HEADERS = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",

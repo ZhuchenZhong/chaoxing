@@ -19,18 +19,26 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           architecture: ${{matrix.architecture}}
 
-      - name: Install requirements
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install pyinstaller
+          uv sync --frozen
+          uv pip install pyinstaller
+
+      - name: Test
+        run: |
+          uv run python -m unittest discover -s tests -v
+          uv run python -m compileall -q api main.py chaoxing_cli.py app.py tests
 
       - name: Build win bin
-        run: pyinstaller -F main.py -n 'chaoxing' --add-data "resource;resource" --hidden-import=chardet
+        run: uv run pyinstaller -F chaoxing_cli.py -n 'chaoxing' --add-data "resource;resource" --hidden-import=chardet
 
       - name: Create release package
         run: |

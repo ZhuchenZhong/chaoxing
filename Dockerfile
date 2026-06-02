@@ -4,7 +4,8 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install uv -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    uv sync --frozen
 
 # 创建配置文件目录并提供默认配置
 RUN mkdir -p /config && \
@@ -14,4 +15,5 @@ RUN mkdir -p /config && \
 VOLUME /config
 
 # 使用配置文件启动应用
-ENTRYPOINT ["python3", "main.py", "-c", "/config/config.ini"]
+ENV CHAOXING_HOME=/config/.chaoxing
+ENTRYPOINT ["uv", "run", "chaoxing", "run", "-c", "/config/config.ini"]

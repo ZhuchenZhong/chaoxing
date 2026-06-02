@@ -17,6 +17,7 @@ from openai import OpenAI
 from urllib3 import disable_warnings, exceptions
 
 from api.answer_check import check_answer
+from api.config_store import default_config_path
 from api.logger import logger
 
 # 关闭警告
@@ -136,7 +137,7 @@ class CacheDAO:
 
 # TODO: 重构此部分代码，将此类改为抽象类，加载题库方法改为静态方法，禁止直接初始化此类
 class Tiku:
-    CONFIG_PATH = os.path.join(os.getcwd(), "config.ini")  # TODO: 从运行参数中获取config路径
+    CONFIG_PATH = str(default_config_path())
     DISABLE = False     # 停用标志
     SUBMIT = False      # 提交标志
     COVER_RATE = 0.8    # 覆盖率
