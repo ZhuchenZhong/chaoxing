@@ -1,19 +1,23 @@
 ## 模块说明
 
-- `__init__.py`: 提供格式化输出辅助函数
-- `base.py`: 提供核心功能，包含主要的Chaoxing类和学习功能
-- `answer.py`: 提供多种题库接口和答题功能
+- `__init__.py`: API 包初始化
+- `base.py`: 提供核心功能，包含主要的 Chaoxing 类、登录、课程、任务点和学习功能
+- `answer.py`: 提供多种题库接口、LLM 配置检查和答题功能
 - `answer_check.py`: 答案检查和验证
+- `captcha.py`: 验证码识别模块（未启用）
 - `cipher.py`: AES加密解密功能
-- `config.py`: 全局配置常量
-- `cookies.py`: Cookie管理
+- `config.py`: 全局配置常量，默认日志和 Cookie 路径跟随应用运行目录
+- `config_store.py`: 读取、生成和保存 `config.ini`，管理 `~/.chaoxing/`、`CHAOXING_HOME` 和密码落盘策略
+- `cookies.py`: Cookie 管理，默认写入应用运行目录下的 `cookies/default.txt`
 - `cxsecret_font.py`: 超星字体解析
 - `decode.py`: 解析超星页面数据
+- `events.py`: 学习流程事件模型，用于把底层任务进度发送给 Rich 或 TUI
 - `exceptions.py`: 自定义异常类
 - `font_decoder.py`: 字体解码器
-- `logger.py`: 日志功能
+- `logger.py`: 日志功能，支持 Rich 控制台输出、文件日志和 TUI 日志回调
+- `rich_ui.py`: Rich 多行进度显示，消费学习事件并展示课程、章节、任务进度
 - `notification.py`: 通知功能
-- `process.py`: 进度显示工具
-- `captcha.py`: 验证码识别模块（未启用）
+- `process.py`: 通用 Rich 进度工具
+- `tui.py`: Textual TUI，管理账号、运行参数、题库、通知、课程刷新和启动运行
 - `live.py`: 直播任务处理
 - `live_process.py`: 直播任务处理逻辑
