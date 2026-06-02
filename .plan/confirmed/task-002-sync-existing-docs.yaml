@@ -1,0 +1,100 @@
+id: task-002-sync-existing-docs
+title: Sync existing module documentation after TUI/Rich modernization
+status: done
+priority: medium
+owner: codex
+tags:
+- docs
+- taskflow
+- github
+depends_on: []
+description: Update existing repository documentation files so they reflect the new
+  uv/Rich/Textual/config modules and startup commands without changing runtime behavior.
+execution:
+  mode: sequential
+  retry: 0
+steps:
+- id: step-001-scan-docs
+  title: Scan existing docs for stale module/startup references
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:20:49.753704'
+      level: info
+      message: Scanning existing README/config/workflow docs for stale startup, module,
+        config path, and branding references.
+      agent: codex
+    - timestamp: '2026-06-02T02:20:54.622432'
+      level: info
+      message: Docs scan found README.md already synchronized with uv/TUI/config startup
+        commands and resource/README.md still accurate. api/README.md needs a module
+        map update for config_store.py, events.py, rich_ui.py, tui.py, and the changed
+        role of process/logger/cookies.
+      agent: codex
+    last_run: '2026-06-02T02:20:54.622432'
+    attempt_count: 2
+  meta: {}
+- id: step-002-update-api-readme
+  title: Update api/README.md module map for new runtime surfaces
+  status: done
+  owner: codex
+  depends_on:
+  - step-001-scan-docs
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:20:58.600928'
+      level: info
+      message: Updating api/README.md with the new module map and runtime responsibilities.
+      agent: codex
+    - timestamp: '2026-06-02T02:21:12.397873'
+      level: info
+      message: Updated api/README.md to document config_store.py, events.py, rich_ui.py,
+        tui.py, and the revised roles for config.py, cookies.py, logger.py, process.py,
+        base.py, and answer.py.
+      agent: codex
+    last_run: '2026-06-02T02:21:12.397873'
+    attempt_count: 2
+  meta: {}
+- id: step-003-verify-push
+  title: Verify docs diff, commit, and push to the open PR branch
+  status: done
+  owner: codex
+  depends_on:
+  - step-002-update-api-readme
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:21:16.046311'
+      level: info
+      message: Verifying docs diff, committing updated docs/TaskFlow trace, and pushing
+        to origin/feature/tui-rich-uv-config.
+      agent: codex
+    - timestamp: '2026-06-02T02:21:58.589791'
+      level: info
+      message: Created docs work commit 1575471, recorded CHANGELOG 0.2.0.1, validated
+        TaskFlow CHANGELOG format and versions, and prepared TaskFlow trace for commit/push.
+      agent: codex
+    last_run: '2026-06-02T02:21:58.589791'
+    attempt_count: 2
+  meta: {}
+outputs:
+- type: report
+  path: docs-sync-summary
+  description: Updated docs, verification, commit, and PR branch push evidence
+trace:
+  logs: []
+  attempt_count: 0
+meta:
+  created_at: '2026-06-02T02:20:43.297694'
+  updated_at: '2026-06-02T02:22:01.826356'
+  version: '1'
