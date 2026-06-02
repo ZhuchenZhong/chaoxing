@@ -18,6 +18,6 @@
 - `rich_ui.py`: Rich 多行进度显示，消费学习事件并展示课程、章节、任务进度
 - `notification.py`: 通知功能
 - `process.py`: 通用 Rich 进度工具
-- `tui.py`: Textual TUI，管理账号、运行参数、题库、通知、课程刷新和启动运行
+- `tui.py`: Textual TUI，提供登录优先的课程刷新、选课、启动运行、退出登录和独立配置面板
 - `live.py`: 直播任务处理
 - `live_process.py`: 直播任务处理逻辑

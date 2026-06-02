@@ -85,3 +85,58 @@ class TuiSaveIntegrationTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(common["username"], "18800000000")
             self.assertEqual(common["password"], "")
             self.assertEqual(common["course_list"], ["101", "202"])
+
+    async def test_tui_course_selection_saves_selected_courses(self):
+        from api.config_store import load_config_from_file
+        from api.tui import ChaoxingTui
+
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "config.ini"
+            app = ChaoxingTui(config_path=config_path)
+            async with app.run_test():
+                app._populate_courses([
+                    {"courseId": "101", "title": "Course A"},
+                    {"courseId": "202", "title": "Course B"},
+                ])
+                app._toggle_course_at_row(1)
+                app._save_config()
+
+            common, _, _ = load_config_from_file(config_path)
+            self.assertEqual(common["course_list"], ["202"])
+
+    async def test_tui_config_panel_toggles_from_main_flow(self):
+        from api.tui import ChaoxingTui
+
+        with tempfile.TemporaryDirectory() as tmp:
+            app = ChaoxingTui(config_path=Path(tmp) / "config.ini")
+            async with app.run_test():
+                app._show_config(True)
+                self.assertFalse(app.query_one("#main-view").display)
+                self.assertTrue(app.query_one("#config-panel").display)
+
+                app._show_config(False)
+                self.assertTrue(app.query_one("#main-view").display)
+                self.assertFalse(app.query_one("#config-panel").display)
+
+    async def test_tui_logout_clears_session_state(self):
+        from textual.widgets import Checkbox, DataTable, Input
+
+        from api.tui import ChaoxingTui
+
+        with tempfile.TemporaryDirectory() as tmp:
+            app = ChaoxingTui(config_path=Path(tmp) / "config.ini")
+            async with app.run_test():
+                app.query_one("#password", Input).value = "secret"
+                app.query_one("#remember-password", Checkbox).value = False
+                app._populate_courses([{"courseId": "101", "title": "Course A"}])
+                app._toggle_course_at_row(0)
+                app._logged_in = True
+
+                app._logout()
+
+                self.assertFalse(app._logged_in)
+                self.assertEqual(app._courses, [])
+                self.assertEqual(app._selected_course_ids, set())
+                self.assertEqual(app.query_one("#password", Input).value, "")
+                self.assertEqual(app.query_one("#course-list", Input).value, "")
+                self.assertEqual(app.query_one("#course-table", DataTable).row_count, 0)
