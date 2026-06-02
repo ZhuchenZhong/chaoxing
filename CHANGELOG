@@ -2,10 +2,24 @@
 :author        ZhuchenZhong
 :repo          https://github.com/ZhuchenZhong/chaoxing
 :desc          Chaoxing automation workflow with uv, Rich, and Textual TUI
-:version       0.2.0.1
+:version       0.2.1
 :last_update   2026/06/02
 
 :history
+
+    0.2.1 - 2026/06/02 (a750414) [cli-upstream-main]
+        :brief Fix the TUI interaction model around login, course selection, configuration, and logout.
+        - fix(tui): make login and course selection the primary flow
+        :src
+            - Replaced the tab-first TUI with a login-first main screen for account input, login/refresh, course selection, start run, logout, and config access.
+            - Moved speed/jobs/not-open behavior, tiku/API tokens, answer submission, and notification fields into a separate F2/config panel.
+            - Added logout state clearing and default Cookie deletion action.
+        :doc
+            - Documented the new TUI flow and shortcuts in README.md.
+            - Updated api/README.md to describe the login-first TUI and independent configuration panel.
+        :test
+            - Added Textual run_test coverage for selected course persistence, config panel toggling, and logout state clearing.
+            - Verified 13 unit tests, compileall, and CLI help smoke commands.
 
     0.2.0.1 - 2026/06/02 (1575471) [cli-upstream-main]
         :brief Synchronize existing API module documentation with the uv/Rich/Textual workflow.
