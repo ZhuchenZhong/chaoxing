@@ -10,15 +10,16 @@ def main(argv: list[str] | None = None):
 
     parser = argparse.ArgumentParser(
         prog="chaoxing",
-        description="ZhuchenZhong/chaoxing TUI and CLI",
+        description="ZhuchenZhong/chaoxing Rich CLI",
     )
     subparsers = parser.add_subparsers(dest="command")
-    subparsers.add_parser("tui", help="打开全程 TUI")
+    subparsers.add_parser("tui", help="打开备用 TUI")
     subparsers.add_parser("run", add_help=False, help="按 config.ini 或命令行参数运行")
 
     if not argv:
-        from api.tui import run_tui
-        run_tui()
+        import main as legacy_main
+        sys.argv = [sys.argv[0]]
+        legacy_main.main(default_tui=False)
         return
 
     known, rest = parser.parse_known_args(argv)

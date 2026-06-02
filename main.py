@@ -17,7 +17,6 @@ from rich.table import Table
 from api.answer import Tiku
 from api.base import Chaoxing, Account, StudyResult
 from api.config_store import (
-    ensure_config_file,
     load_config_from_file as load_config_sections,
     normalize_common_config,
 )
@@ -121,7 +120,7 @@ def init_config():
     if args.config:
         common_config, tiku_config, notification_config = load_config_from_file(args.config)
     else:
-        common_config, tiku_config, notification_config = load_config_from_file(ensure_config_file())
+        common_config, tiku_config, notification_config = build_config_from_args(args)
 
     arg_common_config, _, _ = build_config_from_args(args)
     for key, value in arg_common_config.items():
@@ -511,7 +510,7 @@ def run_study(common_config, tiku_config, notification_config, event_sink: Event
         raise
 
 
-def main(default_tui=True):
+def main(default_tui=False):
     """主程序入口"""
     if default_tui and len(sys.argv) == 1 and sys.stdin.isatty():
         from api.tui import run_tui

@@ -39,6 +39,29 @@ class RuntimeIntegrationTest(unittest.TestCase):
 
         run_tui.assert_called_once()
 
+    def test_cli_default_runs_legacy_cli(self):
+        import chaoxing_cli
+
+        with patch("main.main") as legacy_main:
+            chaoxing_cli.main([])
+
+        legacy_main.assert_called_once_with(default_tui=False)
+
+    def test_init_config_without_config_does_not_create_default_config(self):
+        import main
+
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "config.ini"
+            with patch.dict(os.environ, {"CHAOXING_HOME": tmp}), patch("sys.argv", ["main.py"]):
+                common, tiku, notification = main.init_config()
+
+            self.assertFalse(config_path.exists())
+            self.assertIsNone(common["username"])
+            self.assertIsNone(common["password"])
+            self.assertEqual(common["course_list"], None)
+            self.assertEqual(tiku, {})
+            self.assertEqual(notification, {})
+
     def test_tui_module_imports(self):
         module = importlib.import_module("api.tui")
 

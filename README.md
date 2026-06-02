@@ -1,6 +1,6 @@
 # ZhuchenZhong/chaoxing
 
-超星学习通自动化学习工具，当前分支重点改造为 uv 管理、Rich 进度输出和 Textual TUI 配置界面。
+超星学习通自动化学习工具，当前分支重点改造为 uv 管理、Rich 进度输出和用户目录配置。
 
 本仓库是 `Samueli924/chaoxing` 的 fork，保留 GPL-3.0 许可和上游来源说明。
 
@@ -19,8 +19,9 @@
 ## 主要变化
 
 - 使用 `uv` 管理依赖和锁文件，依赖以 `pyproject.toml`/`uv.lock` 为准。
-- 默认命令 `chaoxing` 打开 TUI，可在界面中管理账号、课程、题库、通知和运行参数。
-- TUI 修改会同步写入 `config.ini`，默认位置是 `~/.chaoxing/config.ini`。
+- 默认命令 `chaoxing` 使用原来的交互式 CLI 流程，并保留 Rich 多行进度显示。
+- 显式传入 `-c/--config` 时读取 `config.ini`，默认推荐位置是 `~/.chaoxing/config.ini`。
+- Textual TUI 暂时保留为备用入口，不作为默认启动流程。
 - 登录 Cookie、运行日志等运行态文件默认放入 `~/.chaoxing/`，可用 `CHAOXING_HOME` 改写目录。
 - 刷课进度使用 Rich 多行进度条，底层 trace/debug 日志写入 `~/.chaoxing/logs/chaoxing.log`。
 
@@ -32,25 +33,22 @@ cd chaoxing
 uv sync
 ```
 
-打开 TUI：
+启动原 CLI（Rich 输出）：
 
 ```bash
 uv run chaoxing
 ```
 
-TUI 主流程：
-
-- 输入账号密码后按 `Enter`，或点击“登录/刷新”，刷新课程列表。
-- 在课程表中移动光标后按 `Space`/`Enter` 选择或取消课程。
-- 点击“开始刷课”按当前选择运行；不选择课程时会学习全部课程。
-- 按 `F2` 或点击“配置”进入运行参数、题库 API Key 和通知配置。
-- 按 `Ctrl+L` 或点击“退出登录”清空当前登录态、课程列表和本次选择。
-- 配置面板中的“清除 Cookie”会删除默认 Cookie 文件并退出当前登录态。
-
-按配置文件非交互运行：
+默认 CLI 无 `-c` 时会按原流程交互输入账号密码和课程列表。按配置文件非交互运行：
 
 ```bash
 uv run chaoxing run -c ~/.chaoxing/config.ini
+```
+
+备用 TUI 入口：
+
+```bash
+uv run chaoxing tui
 ```
 
 兼容旧入口：
@@ -61,13 +59,13 @@ uv run python main.py -c ~/.chaoxing/config.ini
 
 ## 配置文件
 
-首次启动会从 `config_template.ini` 生成 `~/.chaoxing/config.ini`。TUI 是推荐编辑方式，保存后会写回同一个 `config.ini`。
+默认 CLI 不会自动生成或读取 `~/.chaoxing/config.ini`；显式使用 `-c ~/.chaoxing/config.ini` 或备用 TUI 时，会从 `config_template.ini` 生成并使用同一个 `config.ini`。
 
 账号策略：
 
 - 默认保存账号和 Cookie。
-- 只有勾选“记住密码并写入 config.ini”时才保存密码。
-- 不勾选时，TUI 可以临时使用本次输入的密码，但写回配置会清空 `password` 字段。
+- 备用 TUI 中只有勾选“记住密码并写入 config.ini”时才保存密码。
+- 不勾选时，备用 TUI 可以临时使用本次输入的密码，但写回配置会清空 `password` 字段。
 
 常用配置段：
 
