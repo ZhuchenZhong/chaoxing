@@ -1,0 +1,25 @@
+:project       ZhuchenZhong/chaoxing
+:author        ZhuchenZhong
+:repo          https://github.com/ZhuchenZhong/chaoxing
+:desc          Chaoxing automation workflow with uv, Rich, and Textual TUI
+:version       0.2.0
+:last_update   2026/06/02
+
+:history
+
+    0.2.0 - 2026/06/02 (743f2b8) [cli-upstream-main]
+        :brief Modernize the CLI fork with uv, Rich progress, Textual TUI, and synchronized config.ini handling.
+        - feat(tui): add Textual account/config/course/run workflow
+        - feat(progress): replace noisy tqdm-style output with Rich event progress
+        - feat(config): synchronize TUI and CLI settings through user-home config.ini
+        - build(uv): manage runtime and CI dependencies with uv
+        :src
+            - Added config_store, events, rich_ui, tui, and chaoxing console entrypoint modules.
+            - Routed study execution through run_study with event sinks while preserving legacy CLI behavior.
+            - Moved cookies and logs under the app home directory with CHAOXING_HOME override.
+        :config
+            - Default config is generated from config_template.ini into ~/.chaoxing/config.ini.
+            - Password is only written when remember_password=true; otherwise save_config_to_file clears it.
+        :test
+            - Added unit tests for config persistence, fallback paths, course filtering, Rich progress completion, CLI/TUI imports, and Textual config save flow.
+            - Verified uv lock, unittest discovery, compileall, and CLI help commands.
