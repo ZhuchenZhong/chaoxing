@@ -9,6 +9,7 @@ from typing import Dict, Optional
 
 import requests
 
+from api.config_store import default_config_path
 from api.logger import logger
 
 
@@ -18,7 +19,7 @@ class NotificationService(ABC):
     所有具体的通知服务类应继承此类并实现必要的方法。
     """
 
-    CONFIG_PATH = "config.ini"
+    CONFIG_PATH = str(default_config_path())
 
     def __init__(self):
         """初始化通知服务"""

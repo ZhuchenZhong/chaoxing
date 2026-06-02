@@ -1,14 +1,34 @@
 [project]
 name = "chaoxing"
 version = "3.1.3"
-description = "超星学习通/超星尔雅/泛雅超星全自动无人值守完成任务点"
+description = "ZhuchenZhong/chaoxing - 超星学习通自动化学习 TUI 工具"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.13,<4.0"
-dynamic = ["dependencies"]
+dependencies = [
+    "beautifulsoup4>=4.14.2",
+    "celery>=5.5.3",
+    "chardet>=3.0.2,<6.0.0",
+    "flask>=3.1.2",
+    "fonttools>=4.60.1",
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "lxml",
+    "openai>=1.109.1",
+    "pyaes>=1.6.1",
+    "requests>=2.32.5",
+    "rich>=14.0.0",
+    "textual>=6.0.0",
+    "urllib3>=2.5.0",
+]
+
+[project.scripts]
+chaoxing = "chaoxing_cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = []
-
-[tool.setuptools.dynamic]
-dependencies = {file=["requirements.txt"]}
+packages = ["api"]
+py-modules = ["app", "chaoxing_cli", "main"]

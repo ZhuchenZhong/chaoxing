@@ -1,0 +1,63 @@
+:project       ZhuchenZhong/chaoxing
+:author        ZhuchenZhong
+:repo          https://github.com/ZhuchenZhong/chaoxing
+:desc          Chaoxing automation workflow with uv, Rich, and Textual TUI
+:version       0.2.2
+:last_update   2026/06/02
+
+:history
+
+    0.2.2 - 2026/06/02 (1946141) [cli-upstream-main]
+        :brief Restore the default startup path to the original interactive CLI while keeping Rich output.
+        - fix(cli): restore original startup flow by default
+        :src
+            - Changed the chaoxing console script so no-arg startup calls the legacy CLI runner with Rich output instead of opening the TUI.
+            - Changed main.py default_tui to false and made init_config load config files only when -c/--config is explicitly supplied.
+            - Kept chaoxing tui as an explicit backup entry while preserving RichStudyDisplay for CLI runs.
+        :doc
+            - Updated README.md to describe default Rich CLI startup and optional backup TUI.
+            - Updated api/README.md to mark the Textual TUI as a backup module.
+        :test
+            - Added tests that default chaoxing dispatches to legacy CLI and no-config init_config does not create ~/.chaoxing/config.ini.
+            - Verified 15 unit tests, compileall, and CLI help smoke commands.
+
+    0.2.1 - 2026/06/02 (a750414) [cli-upstream-main]
+        :brief Fix the TUI interaction model around login, course selection, configuration, and logout.
+        - fix(tui): make login and course selection the primary flow
+        :src
+            - Replaced the tab-first TUI with a login-first main screen for account input, login/refresh, course selection, start run, logout, and config access.
+            - Moved speed/jobs/not-open behavior, tiku/API tokens, answer submission, and notification fields into a separate F2/config panel.
+            - Added logout state clearing and default Cookie deletion action.
+        :doc
+            - Documented the new TUI flow and shortcuts in README.md.
+            - Updated api/README.md to describe the login-first TUI and independent configuration panel.
+        :test
+            - Added Textual run_test coverage for selected course persistence, config panel toggling, and logout state clearing.
+            - Verified 13 unit tests, compileall, and CLI help smoke commands.
+
+    0.2.0.1 - 2026/06/02 (1575471) [cli-upstream-main]
+        :brief Synchronize existing API module documentation with the uv/Rich/Textual workflow.
+        - docs(api): sync module map for tui workflow
+        :doc
+            - Updated api/README.md to include config_store, events, rich_ui, and tui modules.
+            - Clarified revised responsibilities for config, cookies, logger, process, base, and answer modules.
+        :test
+            - Scanned README.md, api/README.md, and resource/README.md for startup/config/module references.
+            - Checked the staged docs diff with git diff --cached --check.
+
+    0.2.0 - 2026/06/02 (743f2b8) [cli-upstream-main]
+        :brief Modernize the CLI fork with uv, Rich progress, Textual TUI, and synchronized config.ini handling.
+        - feat(tui): add Textual account/config/course/run workflow
+        - feat(progress): replace noisy tqdm-style output with Rich event progress
+        - feat(config): synchronize TUI and CLI settings through user-home config.ini
+        - build(uv): manage runtime and CI dependencies with uv
+        :src
+            - Added config_store, events, rich_ui, tui, and chaoxing console entrypoint modules.
+            - Routed study execution through run_study with event sinks while preserving legacy CLI behavior.
+            - Moved cookies and logs under the app home directory with CHAOXING_HOME override.
+        :config
+            - Default config is generated from config_template.ini into ~/.chaoxing/config.ini.
+            - Password is only written when remember_password=true; otherwise save_config_to_file clears it.
+        :test
+            - Added unit tests for config persistence, fallback paths, course filtering, Rich progress completion, CLI/TUI imports, and Textual config save flow.
+            - Verified uv lock, unittest discovery, compileall, and CLI help commands.

@@ -13,7 +13,6 @@ import requests
 from loguru import logger
 from requests import RequestException
 from requests.adapters import HTTPAdapter
-from tqdm import tqdm
 
 from api.answer import *
 from api.answer_check import cut
@@ -27,6 +26,7 @@ from api.decode import (
     decode_course_folder,
     decode_questions_info,
 )
+from api.events import EventSink, StudyEvent, emit_event
 from api.exceptions import MaxRetryExceeded
 
 
@@ -542,7 +542,8 @@ class Chaoxing:
         return None
 
     def study_video(self, _course, _job, _job_info, _speed: float = 1.0,
-                    _type: Literal["Video", "Audio"] = "Video") -> StudyResult:
+                    _type: Literal["Video", "Audio"] = "Video",
+                    event_sink: EventSink | None = None) -> StudyResult:
         _session = SessionManager.get_session()
 
         headers = gc.VIDEO_HEADERS if _type == "Video" else gc.AUDIO_HEADERS
@@ -568,9 +569,16 @@ class Chaoxing:
         wait_time = int(random.uniform(30, 90))
 
         logger.info(f"开始任务: {_job['name']}, 总时长: {duration}s, 已进行: {play_time}s")
-
-        pbar = tqdm(total=duration, initial=play_time, desc=_job["name"],
-                    unit_scale=True, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+        task_key = f"{_course.get('courseId')}:{_job.get('jobid')}:{_type}"
+        emit_event(event_sink, StudyEvent(
+            kind="job_start",
+            title=f"{_job['name']} ({_type})",
+            key=task_key,
+            course_id=str(_course.get("courseId", "")),
+            job_id=str(_job.get("jobid", "")),
+            completed=play_time,
+            total=duration,
+        ))
 
         forbidden_retry = 0
         max_forbidden_retry = 2
@@ -579,6 +587,14 @@ class Chaoxing:
                                                 _type, headers=headers, _isdrag=4)
         if passed:
             logger.info("任务瞬间完成: {}", _job['name'])
+            emit_event(event_sink, StudyEvent(
+                kind="job_progress",
+                title=f"{_job['name']} ({_type})",
+                key=task_key,
+                completed=duration,
+                total=duration,
+            ))
+            emit_event(event_sink, StudyEvent(kind="job_done", title=_job["name"], key=task_key, status="SUCCESS"))
             return StudyResult.SUCCESS
 
         while not passed:
@@ -621,11 +637,17 @@ class Chaoxing:
             last_iter = time.time()
             play_time = min(duration, play_time + dt)
 
-            pbar.n = int(play_time)
-            pbar.refresh()
+            emit_event(event_sink, StudyEvent(
+                kind="job_progress",
+                title=f"{_job['name']} ({_type})",
+                key=task_key,
+                completed=int(play_time),
+                total=duration,
+            ))
             time.sleep(gc.THRESHOLD)
 
         logger.info("任务完成: {}", _job['name'])
+        emit_event(event_sink, StudyEvent(kind="job_done", title=_job["name"], key=task_key, status="SUCCESS"))
         return StudyResult.SUCCESS
 
     def study_document(self, _course, _job) -> StudyResult:

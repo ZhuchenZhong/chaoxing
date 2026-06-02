@@ -1,5 +1,8 @@
 import time
 
+from rich.console import Console
+from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
+
 from api.config import GlobalConst as gc
 
 
@@ -39,24 +42,18 @@ def show_progress(task_name: str, start_position: int, duration: int,
     Returns:
         None
     """
+    console = Console()
     start_time = time.time()
     expected_end_time = start_time + (duration / speed)
-    
-    while time.time() < expected_end_time:
-        # 计算当前进度
-        current_position = start_position + int((time.time() - start_time) * speed)
-        percent_complete = min(int(current_position / total_length * 100), 100)
-        
-        # 生成进度条
-        bar_length = 40
-        filled_length = int(percent_complete * bar_length // 100)
-        progress_bar = ("#" * filled_length).ljust(bar_length, " ")
-        
-        # 格式化输出进度信息
-        progress_text = (
-            f"\r当前任务: {task_name} |{progress_bar}| {percent_complete}%  "
-            f"{sec2time(current_position)}/{sec2time(total_length)}"
-        )
-        
-        print(progress_text, end="", flush=True)
-        time.sleep(gc.THRESHOLD)
+    with Progress(
+        TextColumn("[bold]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed:.0f}/{task.total:.0f}"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task_id = progress.add_task(task_name, total=total_length, completed=start_position)
+        while time.time() < expected_end_time:
+            current_position = start_position + int((time.time() - start_time) * speed)
+            progress.update(task_id, completed=min(current_position, total_length))
+            time.sleep(gc.THRESHOLD)

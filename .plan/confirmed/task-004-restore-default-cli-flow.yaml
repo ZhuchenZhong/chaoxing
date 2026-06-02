@@ -1,0 +1,134 @@
+id: task-004-restore-default-cli-flow
+title: Restore default CLI flow while keeping Rich output
+status: done
+priority: high
+owner: codex
+tags:
+- cli
+- rich
+- tui
+- taskflow
+- github
+depends_on: []
+description: Make the default entrypoint use the original interactive CLI flow instead
+  of opening the TUI or auto-loading default config, while preserving Rich progress/logging
+  and leaving the TUI as an optional fallback entry. Update docs/tests and push the
+  existing PR branch.
+execution:
+  mode: sequential
+  retry: 0
+steps:
+- id: step-001-entrypoint
+  title: Change chaoxing and main.py defaults back to CLI mode
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:35:46.023068'
+      level: info
+      message: Changing console script default and main.py default_tui behavior back
+        to CLI mode while keeping explicit chaoxing tui available.
+      agent: codex
+    - timestamp: '2026-06-02T02:36:19.870891'
+      level: info
+      message: chaoxing console script now invokes legacy main(default_tui=False)
+        when no subcommand is provided; explicit chaoxing tui remains available as
+        a backup. main.py default_tui now defaults to False.
+      agent: codex
+    last_run: '2026-06-02T02:36:19.870891'
+    attempt_count: 2
+  meta: {}
+- id: step-002-config-behavior
+  title: Restore no-config interactive behavior unless -c is explicitly supplied
+  status: done
+  owner: codex
+  depends_on:
+  - step-001-entrypoint
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:35:47.127084'
+      level: info
+      message: Restoring no-config CLI startup to build config from CLI args only,
+        so missing account/password prompts like the original flow instead of auto-loading
+        ~/.chaoxing/config.ini.
+      agent: codex
+    - timestamp: '2026-06-02T02:37:23.645796'
+      level: info
+      message: main.init_config now loads config files only when -c/--config is explicitly
+        supplied; otherwise it builds config from CLI args so missing credentials
+        prompt interactively like the original CLI.
+      agent: codex
+    last_run: '2026-06-02T02:37:23.645796'
+    attempt_count: 2
+  meta: {}
+- id: step-003-tests-docs
+  title: Update tests and documentation for CLI default and optional TUI
+  status: done
+  owner: codex
+  depends_on:
+  - step-002-config-behavior
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:37:24.778926'
+      level: info
+      message: Updating tests and docs for default Rich CLI startup and optional TUI
+        fallback.
+      agent: codex
+    - timestamp: '2026-06-02T02:37:39.601874'
+      level: info
+      message: 'Updated README and api/README to state that default startup is the
+        original Rich CLI and TUI is a backup entry. Added tests for chaoxing default
+        CLI dispatch and no-config init_config behavior. Verification passed: 15 tests
+        OK, compileall, chaoxing --help, chaoxing run --help.'
+      agent: codex
+    last_run: '2026-06-02T02:37:39.601874'
+    attempt_count: 2
+  meta: {}
+- id: step-004-verify-push
+  title: Verify, commit with changelog/TaskFlow trace, and push PR update
+  status: done
+  owner: codex
+  depends_on:
+  - step-003-tests-docs
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:37:40.706860'
+      level: info
+      message: Reviewing diff, committing default CLI restore, recording changelog,
+        persisting TaskFlow trace, and pushing the open PR branch.
+      agent: codex
+    - timestamp: '2026-06-02T02:38:53.884864'
+      level: info
+      message: 'Created work commit 1946141. Verification passed: uv run python -m
+        unittest discover -s tests -v (15 tests OK), uv run python -m compileall -q
+        api main.py chaoxing_cli.py app.py tests, uv run chaoxing --help, uv run chaoxing
+        run --help. Recorded CHANGELOG 0.2.2 and validated TaskFlow changelog format/versions.
+        uv.lock mirror URL changes and .omx runtime state remain intentionally untracked/uncommitted.'
+      agent: codex
+    last_run: '2026-06-02T02:38:53.884864'
+    attempt_count: 2
+  meta: {}
+outputs:
+- type: report
+  path: default-cli-restore-summary
+  description: CLI default restore, verification, commits, and PR evidence
+trace:
+  logs: []
+  attempt_count: 0
+meta:
+  created_at: '2026-06-02T02:35:34.379493'
+  updated_at: '2026-06-02T02:39:00.870530'
+  version: '1'

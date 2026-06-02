@@ -1,0 +1,159 @@
+id: task-003-fix-login-first-tui-flow
+title: Fix TUI to use login-first course selection workflow
+status: done
+priority: high
+owner: codex
+tags:
+- tui
+- ux
+- config
+- taskflow
+- github
+depends_on: []
+description: Refactor the Textual TUI so the primary flow is simple login, Enter/login
+  refresh course list, choose courses, start study, with a separate configuration
+  panel for runtime options, API keys, and notifications. Add logout and cookie clearing
+  behavior, update tests/docs, and push the open PR branch.
+execution:
+  mode: sequential
+  retry: 0
+steps:
+- id: step-001-map-tui-apis
+  title: Inspect current TUI and Textual DataTable behavior needed for selection
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:26:14.448804'
+      level: info
+      message: Inspecting Textual DataTable APIs and current TUI tests before refactor.
+      agent: codex
+    - timestamp: '2026-06-02T02:29:05.924195'
+      level: info
+      message: 'Confirmed Textual DataTable supports row cursor selection, RowSelected(cursor_row,row_key),
+        add_row(key=...), update_cell(row_key,column_key), and row_count. Current
+        TUI tests mount ChaoxingTui and expect #course-list/#remember-password fields.'
+      agent: codex
+    last_run: '2026-06-02T02:29:05.924195'
+    attempt_count: 2
+  meta: {}
+- id: step-002-refactor-main-flow
+  title: Refactor TUI into login-first main workflow with course selection and logout
+  status: done
+  owner: codex
+  depends_on:
+  - step-001-map-tui-apis
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:29:12.720518'
+      level: info
+      message: Refactoring ChaoxingTui main screen to login-first flow with Enter
+        login/refresh, course table selection, start run, logout, and cookie clearing.
+      agent: codex
+    - timestamp: '2026-06-02T02:29:53.354975'
+      level: info
+      message: Refactored ChaoxingTui primary workflow into login/refresh, selectable
+        course table, start run, logout, and clear-cookie actions. Enter triggers
+        login/refresh from login fields and Space/Enter toggles course selection when
+        focused on the course table.
+      agent: codex
+    last_run: '2026-06-02T02:29:53.354975'
+    attempt_count: 2
+  meta: {}
+- id: step-003-config-panel
+  title: Move advanced runtime/tiku/notification controls into a configuration panel
+  status: done
+  owner: codex
+  depends_on:
+  - step-002-refactor-main-flow
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:29:13.811748'
+      level: info
+      message: Moving advanced runtime, tiku/API key, and notification fields behind
+        the F2/config panel rather than primary tabs.
+      agent: codex
+    - timestamp: '2026-06-02T02:29:54.456018'
+      level: info
+      message: Moved advanced speed/jobs/not-open behavior, tiku provider/API tokens,
+        answer submission, and notification settings into a hidden config panel reachable
+        from F2 or the config button.
+      agent: codex
+    last_run: '2026-06-02T02:29:54.456018'
+    attempt_count: 2
+  meta: {}
+- id: step-004-tests-docs
+  title: Update tests and docs for new workflow and shortcuts
+  status: done
+  owner: codex
+  depends_on:
+  - step-003-config-panel
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:29:55.551051'
+      level: info
+      message: Updating runtime integration tests and README/api docs for course selection,
+        config panel, logout, and shortcut behavior.
+      agent: codex
+    - timestamp: '2026-06-02T02:30:38.592249'
+      level: info
+      message: 'Updated tests for selected-course config persistence, config panel
+        toggling, and logout state clearing. Updated README TUI flow and api/README
+        module description. Verification passed: unittest discovery 13 tests OK; compileall;
+        chaoxing --help; chaoxing run --help.'
+      agent: codex
+    last_run: '2026-06-02T02:30:38.592249'
+    attempt_count: 2
+  meta: {}
+- id: step-005-verify-push
+  title: Run verification, commit with TaskFlow trace, and push PR update
+  status: done
+  owner: codex
+  depends_on:
+  - step-004-tests-docs
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:30:39.697906'
+      level: info
+      message: Reviewing diff, committing code/docs/tests, recording changelog, persisting
+        TaskFlow trace, and pushing the open PR branch.
+      agent: codex
+    - timestamp: '2026-06-02T02:31:37.916424'
+      level: info
+      message: 'Created work commit a750414. Verification passed: uv run python -m
+        unittest discover -s tests -v (13 tests OK), uv run python -m compileall -q
+        api main.py chaoxing_cli.py app.py tests, uv run chaoxing --help, uv run chaoxing
+        run --help. Recorded CHANGELOG 0.2.1 and validated TaskFlow changelog format
+        and versions. uv.lock has unrelated local mirror URL changes and was intentionally
+        not staged.'
+      agent: codex
+    last_run: '2026-06-02T02:31:37.916424'
+    attempt_count: 2
+  meta: {}
+outputs:
+- type: report
+  path: tui-flow-fix-summary
+  description: TUI workflow fix, tests, docs, commits, and PR evidence
+trace:
+  logs: []
+  attempt_count: 0
+meta:
+  created_at: '2026-06-02T02:26:06.614446'
+  updated_at: '2026-06-02T02:31:41.305340'
+  version: '1'

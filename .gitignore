@@ -133,9 +133,7 @@ build/
 dist/
 *.spec
 
-# python-uv.lock
-# just like Pipfile.lock,
-uv.lock
+# uv lockfiles are committed for reproducible installs.
 
 # poetry
 poetry.lock
