@@ -1,0 +1,176 @@
+id: task-001-tui-rich-uv-config
+title: Implement uv-managed Rich/Textual chaoxing workflow
+status: done
+priority: high
+owner: codex
+tags:
+- git-flow
+- github
+- tui
+- uv
+- rich
+- config
+depends_on: []
+description: Implement the requested repository fork alignment, uv dependency management,
+  Rich multi-progress output, full Textual TUI for account/config/course/run workflows,
+  and config.ini synchronization under the user home directory. Preserve legacy CLI
+  compatibility, verify behavior with automated tests and command checks, then push
+  the branch and open a GitHub PR through the fork.
+execution:
+  mode: sequential
+  retry: 0
+steps:
+- id: step-001-remote-branch
+  title: Bind fork/upstream remotes and work on a feature branch
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:04:35.662717'
+      level: info
+      message: origin set to ZhuchenZhong/chaoxing, upstream set to Samueli924/chaoxing,
+        work continued on feature/tui-rich-uv-config.
+      agent: codex
+    last_run: '2026-06-02T02:04:35.662717'
+    attempt_count: 2
+  meta: {}
+- id: step-002-uv-metadata
+  title: Migrate dependencies to uv project metadata and lockfile
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:04:43.876032'
+      level: info
+      message: pyproject.toml now owns dependencies and chaoxing script; uv.lock generated
+        and requirements.txt kept for compatibility.
+      agent: codex
+    last_run: '2026-06-02T02:04:43.876032'
+    attempt_count: 2
+  meta: {}
+- id: step-003-config-sync
+  title: Implement user-home config.ini, cookie, log, and password policy handling
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:05:02.670552'
+      level: info
+      message: Added user-home config/cookie/log paths and config.ini save/load synchronization
+        with remember_password policy.
+      agent: codex
+    last_run: '2026-06-02T02:05:02.670552'
+    attempt_count: 2
+  meta: {}
+- id: step-004-rich-tui
+  title: Implement Rich progress events and full Textual TUI workflow
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:05:03.753692'
+      level: info
+      message: Added event-based runner, Rich progress display, and Textual TUI for
+        account/config/course/run workflows.
+      agent: codex
+    last_run: '2026-06-02T02:05:03.753692'
+    attempt_count: 2
+  meta: {}
+- id: step-005-docs-ci
+  title: Update branding, README, Docker, and CI for uv/TUI workflow
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:05:04.837023'
+      level: info
+      message: Updated README, Dockerfile, CI, issue template, and branding for uv/TUI
+        workflow.
+      agent: codex
+    last_run: '2026-06-02T02:05:04.837023'
+    attempt_count: 2
+  meta: {}
+- id: step-006-review-verify
+  title: Review and verify all changed functionality before commit
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:09:45.302829'
+      level: info
+      message: 'Verification passed after review cleanup: uv lock --check; uv run
+        python -m unittest discover -s tests -v (10 tests OK, including config.ini
+        save/load, password persistence policy, Rich progress, CLI/TUI import, Textual
+        run_test save flow); uv run python -m compileall -q api main.py chaoxing_cli.py
+        app.py tests; uv run chaoxing --help; uv run chaoxing run --help. Repo scan
+        found no direct business-code tqdm calls; old main.py tqdm helper/import remnants
+        were removed; Rich completion and TUI background running-state handling were
+        tightened.'
+      agent: codex
+    last_run: '2026-06-02T02:09:45.302829'
+    attempt_count: 2
+  meta: {}
+- id: step-007-github-pr
+  title: Commit, push to origin, and create GitHub PR
+  status: done
+  owner: codex
+  depends_on: []
+  execution:
+    mode: sequential
+    retry: 0
+  trace:
+    logs:
+    - timestamp: '2026-06-02T02:09:49.908889'
+      level: info
+      message: 'Starting final GitHub phase: stage owned changes, commit with Lore
+        trailers, record TaskFlow changelog if available, push feature branch to fork,
+        and create a PR against a safe CLI base branch rather than the fork''s divergent
+        web-platform main/develop branches.'
+      agent: codex
+    - timestamp: '2026-06-02T02:12:31.085459'
+      level: info
+      message: 'Created work commit 743f2b8 and changelog commit ca5d2f1. Pushed cli-upstream-main
+        (6ca38cb) and feature/tui-rich-uv-config to origin https://github.com/ZhuchenZhong/chaoxing.git.
+        Created GitHub PR #1 targeting cli-upstream-main: https://github.com/ZhuchenZhong/chaoxing/pull/1.
+        Base branch chosen because origin/main and origin/develop are on a divergent
+        web-platform history while this work is based on upstream/main CLI history.'
+      agent: codex
+    last_run: '2026-06-02T02:12:31.085459'
+    attempt_count: 2
+  meta: {}
+outputs:
+- type: report
+  path: verification-summary
+  description: Unit tests, compileall, uv lock, CLI help, Git remote, push, and PR
+    evidence
+trace:
+  logs: []
+  attempt_count: 0
+meta:
+  created_at: '2026-06-02T02:03:52.186544'
+  updated_at: '2026-06-02T02:12:39.569323'
+  version: '1'

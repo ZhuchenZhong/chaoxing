@@ -1,0 +1,33 @@
+# TaskFlow preferences for this project.
+
+git:
+  branch_model: gitflow
+  remote_mode: pr
+  use_gh: true
+
+changelog:
+  path: CHANGELOG
+  archive_dir: docs/changelog
+  version_policy: extended-semver
+  minor_split_line_threshold: 300
+  indentation: four-space-colon-dsl
+  allow_duplicate_versions: false
+  normalize_existing_duplicates: true
+
+issue:
+  split_broad_issues: true
+  subissue_assignee: "@me"
+  close_after_merge: true
+
+release:
+  prerelease_default: rc.1
+  push_tags: false
+  delete_finished_branches: true
+
+execution:
+  max_concurrent_tasks: 1
+  default_retry: 0
+  default_step_timeout: null
+
+watcher:
+  polling: false
